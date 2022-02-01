@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: resources/docker/dev/Dockerfile
-    container_name: kittemplate-app
+    container_name: qonto-app
     env_file:
       - .env
     ports:
@@ -12,7 +12,7 @@ services:
       - "8080:8080"
       - "8010:8010"
     volumes:
-      - .:/go/src/github.com/dohernandez/kit-template
+      - .:/go/src/github.com/dohernandez/qonto
       - /tmp/go-build:/root/.cache/go-build
     depends_on:
       database:
@@ -20,7 +20,7 @@ services:
 
   database-migrate:
     image: migrate/migrate
-    container_name: kittemplate-database-migrate
+    container_name: qonto-database-migrate
     volumes:
       - ./resources/migrations:/resources/migrations
     depends_on:
@@ -29,19 +29,19 @@ services:
     restart: on-failure
     command:
       - "-database"
-      - "postgres://user:password@database:5432/dbname?sslmode=disable"
+      - "postgres://qonto:qonto@database:5432/qonto_accounts?sslmode=disable"
       - "-path"
       - "/resources/migrations"
       - "up"
 
   database:
     image: postgres:13.1-alpine
-    container_name: kittemplate-database
+    container_name: qonto-database
     restart: always
     environment:
-      POSTGRES_PASSWORD: password
-      POSTGRES_USER: user
-      POSTGRES_DB: dbname
+      POSTGRES_PASSWORD: qonto
+      POSTGRES_USER: qonto
+      POSTGRES_DB: qonto_accounts
     ports:
       - "5432:5432"
     healthcheck:

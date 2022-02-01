@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -25,6 +26,11 @@ type GracefulShutdownFunc func(ctx context.Context)
 
 // ServiceGroup manages services start and graceful shutdown synchronize.
 type ServiceGroup struct {
+	mutex  sync.Mutex
+	closed bool
+
+	sigint chan os.Signal
+
 	gracefulShutdownFuncs []GracefulShutdownFunc
 }
 
@@ -42,8 +48,8 @@ func (sg *ServiceGroup) Start(ctx context.Context, log func(ctx context.Context,
 	toShutdown := make(map[string]chan struct{})
 	shutdownCh := make(chan struct{})
 
-	sigint := make(chan os.Signal, 1)
-	signal.Notify(sigint, syscall.SIGTERM, os.Interrupt)
+	sg.sigint = make(chan os.Signal, 1)
+	signal.Notify(sg.sigint, syscall.SIGTERM, syscall.SIGINT, os.Interrupt)
 
 	g, ctx := errgroup.WithContext(ctx)
 
@@ -61,7 +67,9 @@ func (sg *ServiceGroup) Start(ctx context.Context, log func(ctx context.Context,
 	}
 
 	g.Go(func() error {
-		<-sigint
+		<-sg.sigint
+
+		signal.Stop(sg.sigint)
 
 		close(shutdownCh)
 
@@ -88,4 +96,17 @@ func (sg *ServiceGroup) Start(ctx context.Context, log func(ctx context.Context,
 	}
 
 	return nil
+}
+
+// Close invokes services to termination.
+func (sg *ServiceGroup) Close() (err error) {
+	sg.mutex.Lock()
+	defer sg.mutex.Unlock()
+
+	if !sg.closed {
+		sg.closed = true
+		close(sg.sigint)
+	}
+
+	return err
 }

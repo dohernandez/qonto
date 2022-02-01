@@ -7,7 +7,7 @@ import (
 	"net"
 
 	"github.com/bool64/ctxd"
-	"github.com/dohernandez/kit-template/pkg/servicing"
+	"github.com/dohernandez/qonto/pkg/servicing"
 	grpcPrometheus "github.com/grpc-ecosystem/go-grpc-prometheus"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
@@ -71,6 +71,13 @@ func WithReflective() Option {
 	}
 }
 
+// WithAddrAssigned sets service to ask for listener assigned address. Mainly used when the port to the listener is assigned dynamically.
+func WithAddrAssigned() Option {
+	return func(srv *Server) {
+		srv.AddrAssigned = make(chan string, 1)
+	}
+}
+
 // WithMetrics sets the metrics, metrics handler and metrics listener. Used to initialize all metrics and create http.Serve
 // for /metrics endpoint.
 func WithMetrics(metrics *grpcPrometheus.ServerMetrics) Option {
@@ -83,8 +90,9 @@ func WithMetrics(metrics *grpcPrometheus.ServerMetrics) Option {
 type Server struct {
 	config config
 
-	listener net.Listener
-	server   *grpc.Server
+	listener     net.Listener
+	server       *grpc.Server
+	AddrAssigned chan string
 
 	shutdownSignal <-chan struct{}
 	shutdownDone   chan<- struct{}
@@ -125,7 +133,7 @@ func (s *Server) Start() error {
 
 	s.handleServerShutdown()
 
-	s.listeningError = make(chan error)
+	s.listeningError = make(chan error, 1)
 
 	go func() {
 		defer func() {
@@ -149,6 +157,11 @@ func (s *Server) Start() error {
 			return
 		}
 	}()
+
+	// the server is being asked for the dynamical address assigned.
+	if s.AddrAssigned != nil {
+		s.AddrAssigned <- s.listener.Addr().String()
+	}
 
 	if err := <-s.listeningError; err != nil {
 		return ctxd.WrapError(context.Background(), err, "GRPC server failed",

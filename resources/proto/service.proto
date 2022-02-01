@@ -1,51 +1,45 @@
 syntax = "proto3";
 
-option go_package = "github.com/dohernandez/kit-template/pkg/api";
+option go_package = "github.com/dohernandez/qonto/pkg/api";
 
-package kit.template;
+package api.qonto;
 
 import "google/api/annotations.proto";
 import "protoc-gen-openapiv2/options/annotations.proto";
+import "google/protobuf/empty.proto";
 
 option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_swagger) = {
   info: {
-    title: "kit-template"
+    title: "Qonto"
     version: "1.0"
-    description: "Short description of the service"
+    description: "Service that performance transfers."
   }
   schemes: HTTP;
   consumes: "application/json"
   produces: "application/json"
-  responses: {
-    key: "400"
-    value: {
-      description: "Short description of the general 400 error.";
-      schema: {
-        json_schema: {
-          ref: ".google.rpc.Status"
-        }
-      }
-    }
-  }
 };
 
-// The API manages ... .
-service KitTemplateService {
-  // PostFuncName ... .
+// The API manages transfers.
+service QontoService {
+  // TransferBulk performs given transfers.
   //
-  // Receives a request with ... . Responses ... .
-  rpc PostFuncName(PostFuncRequest) returns (PostFuncResponse) {
+  // Receives a request with bulk of transfer to perform. Responses whether the transfer were done successfully or not, due to:
+  // - account not found
+  // - not enough funds in the account
+  // - internal server.
+  rpc TransferBulk(TransferBulkRequest) returns (google.protobuf.Empty) {
     // Client example (Assuming the service is hosted at the given 'DOMAIN_NAME'):
     // Client example:
-    //   curl -d '{}' http://DOMAIN_NAME/v1/resource/name
+    //   curl -d '{...}' http://DOMAIN_NAME/v1/transfer/bulk
     option (google.api.http) = {
-      post : "/v1/resource/name"
+      post : "/v1/transfer/bulk"
       body : "*"
     };
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       responses: {
-        key: "200"
+        key: "201"
         value: {
+          description: "Transfers performed."
           examples: {
             key: "application/json"
             value: '{}'
@@ -53,9 +47,9 @@ service KitTemplateService {
         }
       }
       responses: {
-        key: "500"
+        key: "400"
         value: {
-          description: "An unexpected error response."
+          description: "Account not found.";
           schema: {
             json_schema: {
               ref: ".google.rpc.Status"
@@ -63,38 +57,10 @@ service KitTemplateService {
           }
         }
       }
-    };
-  }
-
-  // GetFuncName.
-  //
-  // Receives a request with ... . Responses ... .
-  rpc GetFuncName(GetFuncRequest) returns (GetFuncResponse) {
-    // Client example (Assuming the service is hosted at the given 'DOMAIN_NAME'):
-    // Client example:
-    //   curl http://DOMAIN_NAME/resource/name
-    option (google.api.http) = {
-      get : "/v1/resource/name"
-    };
-    option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_operation) = {
       responses: {
-        key: "200"
+        key: "422"
         value: {
-          examples: {
-            key: "application/json"
-            value: '{}'
-          }
-          schema: {
-            json_schema: {
-              ref: ".kit.template.GetFuncNameResponse"
-            }
-          }
-        }
-      }
-      responses: {
-        key: "404"
-        value: {
-          description: "Not found response."
+          description: "Request denied, not enough funds in the account.";
           schema: {
             json_schema: {
               ref: ".google.rpc.Status"
@@ -117,68 +83,43 @@ service KitTemplateService {
   }
 }
 
-message PostFuncRequest {
+message TransferBulkRequest {
   option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
     json_schema: {
-      title: "PostFuncRequest"
-      description: "Request message to ... ."
-      required: []
+      title: "TransferBulk"
+      description: "Request message to process bulk transfer."
+      required: ["organization_name", "organization_bic", "organization_iban", "credit_transfers"]
     }
   };
 
-  // ... .
-  string postParam1 = 1;
-  // ... .
-  uint64 postParam2 = 2;
-  // ... .
-  repeated string postParam3 = 3;
-}
+  // Organization name.
+  string organization_name = 1;
+  // Uniquely identify the Qonto customer's bic account.
+  string organization_bic = 2;
+  // Uniquely identify the Qonto customer's iban account.
+  string organization_iban = 3;
+  // Transfer rows.
+  repeated CreditTransfersRow credit_transfers = 4;
 
-message PostFuncResponse {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      title: "PostFuncResponse"
-      description: "Response message from ... ."
-      required: []
-    }
-  };
-  // ... .
-  string responseValue1 = 1;
-}
-
-message GetFuncRequest {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      title: "GetFuncRequest"
-      description: "Request message to ... ."
-      required: []
-    }
-  };
-  // Leaderboard ID.
-  string leaderboard_uuid = 1;
-}
-
-message GetFuncResponse {
-  option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
-    json_schema: {
-      title: "GetFuncResponse"
-      description: "Response message from ... ."
-    }
-  };
-
-  // rows
-  repeated RepeatedRow rows = 1;
-
-  message RepeatedRow {
+  message CreditTransfersRow {
     option (grpc.gateway.protoc_gen_openapiv2.options.openapiv2_schema) = {
       json_schema: {
-        title: "RepeatedRow"
-        description: "... ."
+        title: "CreditTransfersRow"
+        description: "Transfers."
+        required: ["amount", "currency", "counterparty_name", "counterparty_bic", "counterparty_iban", "description"]
       }
     };
-    // ... .
-    string responseValue1 = 1;
-    // ... .
-    int64 responseValue2 = 2;
+    // The amount of the individual transfer.
+    double amount = 1;
+    // The currency of the transfer.
+    string currency = 2;
+    // Represent the name of the counterparty.
+    string counterparty_name = 3;
+    // Represent the account bic of the counterparty.
+    string counterparty_bic = 4;
+    // Represent the account iban of the counterparty.
+    string counterparty_iban = 5;
+    // Description of the transfer.
+    string description = 6;
   }
 }

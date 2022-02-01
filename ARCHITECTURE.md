@@ -1,12 +1,8 @@
 # Kit Template Architecture
 
-* Latest update: 2021-11-19
+* Latest update: 2021-11-30
 
-<!-- Short description of the service -->
-
-## Overview
-
-![](./resources/architecture/ARCHITECTURE-overview.jpeg)
+Service that performance transfers.
 
 ### Storage
 

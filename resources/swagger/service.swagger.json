@@ -1,0 +1,172 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "Qonto",
+    "description": "Service that performance transfers.",
+    "version": "1.0"
+  },
+  "tags": [
+    {
+      "name": "QontoService"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/v1/transfer/bulk": {
+      "post": {
+        "summary": "TransferBulk performs given transfers.",
+        "description": "Receives a request with bulk of transfer to perform. Responses whether the transfer were done successfully or not, due to:\n- account not found\n- not enough funds in the account\n- internal server.",
+        "operationId": "QontoService_TransferBulk",
+        "responses": {
+          "201": {
+            "description": "Transfers performed.",
+            "schema": {},
+            "examples": {
+              "application/json": {}
+            }
+          },
+          "400": {
+            "description": "Account not found.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "422": {
+            "description": "Request denied, not enough funds in the account.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          },
+          "500": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/qontoTransferBulkRequest"
+            }
+          }
+        ],
+        "tags": [
+          "QontoService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TransferBulkRequestCreditTransfersRow": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "number",
+          "format": "double",
+          "description": "The amount of the individual transfer."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the transfer."
+        },
+        "counterpartyName": {
+          "type": "string",
+          "description": "Represent the name of the counterparty."
+        },
+        "counterpartyBic": {
+          "type": "string",
+          "description": "Represent the account bic of the counterparty."
+        },
+        "counterpartyIban": {
+          "type": "string",
+          "description": "Represent the account iban of the counterparty."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the transfer."
+        }
+      },
+      "description": "Transfers.",
+      "title": "CreditTransfersRow",
+      "required": [
+        "amount",
+        "currency",
+        "counterpartyName",
+        "counterpartyBic",
+        "counterpartyIban",
+        "description"
+      ]
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "qontoTransferBulkRequest": {
+      "type": "object",
+      "properties": {
+        "organizationName": {
+          "type": "string",
+          "description": "Organization name."
+        },
+        "organizationBic": {
+          "type": "string",
+          "description": "Uniquely identify the Qonto customer's bic account."
+        },
+        "organizationIban": {
+          "type": "string",
+          "description": "Uniquely identify the Qonto customer's iban account."
+        },
+        "creditTransfers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/TransferBulkRequestCreditTransfersRow"
+          },
+          "description": "Transfer rows."
+        }
+      },
+      "description": "Request message to process bulk transfer.",
+      "title": "TransferBulk",
+      "required": [
+        "organizationName",
+        "organizationBic",
+        "organizationIban",
+        "creditTransfers"
+      ]
+    },
+    "rpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    }
+  }
+}

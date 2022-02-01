@@ -1,9 +1,12 @@
 package config
 
 import (
+	"io"
+	"os"
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap/zapcore"
 )
@@ -32,6 +35,12 @@ type DBConfig struct {
 type LoggerConfig struct {
 	Level      zapcore.Level `envconfig:"LOG_LEVEL" default:"error"`
 	FieldNames string        `envconfig:"LOG_FILENAMES" default:"true"`
+	Output     io.Writer
+	// LockTime disables time variance in logger.
+	LockTime bool
+
+	// CallerSkip configures how deeply func calls should be skipped, default 1.
+	CallerSkip int
 }
 
 // GetConfig returns service config, filled from environment variables.
@@ -47,4 +56,37 @@ func GetConfig() (*Config, error) {
 // IsDev returns true for development environment.
 func (c *Config) IsDev() bool {
 	return len(c.Environment) > 2 && strings.ToLower(c.Environment[0:3]) == "dev"
+}
+
+// IsTest returns true for testing environment.
+func (c *Config) IsTest() bool {
+	return len(c.Environment) > 2 && strings.ToLower(c.Environment[0:4]) == "test"
+}
+
+// WithEnvFiles populates env vars from provided files.
+//
+// It returns an error if file does not exist.
+func WithEnvFiles(files ...string) error {
+	var found []string
+
+	for _, f := range files {
+		if fileExists(f) {
+			found = append(found, f)
+		}
+	}
+
+	if len(found) == 0 {
+		return nil
+	}
+
+	return godotenv.Load(files...)
+}
+
+func fileExists(filename string) bool {
+	info, err := os.Stat(filename)
+	if os.IsNotExist(err) {
+		return false
+	}
+
+	return !info.IsDir()
 }

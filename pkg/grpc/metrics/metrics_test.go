@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dohernandez/kit-template/pkg/grpc/metrics"
+	"github.com/dohernandez/qonto/pkg/grpc/metrics"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/test/bufconn"
 )

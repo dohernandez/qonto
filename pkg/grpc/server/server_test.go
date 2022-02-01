@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/dohernandez/kit-template/pkg/grpc/server"
+	"github.com/dohernandez/qonto/pkg/grpc/server"
 	grpcRecovery "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
 	"github.com/stretchr/testify/require"
 	"google.golang.org/grpc/test/bufconn"

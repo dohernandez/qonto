@@ -31,11 +31,14 @@ endif
 -include $(DEVGO_PATH)/makefiles/build.mk
 -include $(DEVGO_PATH)/makefiles/lint.mk
 -include $(DEVGO_PATH)/makefiles/test-unit.mk
+-include $(DEVGO_PATH)/makefiles/test-integration.mk
 -include $(DEVGO_PATH)/makefiles/bench.mk
 -include $(DEVGO_PATH)/makefiles/reset-ci.mk
 
 # Add your custom targets here.
-BUILD_PKG = ./cmd/kit-template
+BUILD_PKG = ./cmd/qonto
+BUILD_LDFLAGS="-s -w"
+INTEGRATION_TEST_TARGET = -allure -coverpkg ./internal/... integration_test.go
 
 APP_PATH = $(shell pwd)
 APP_SCRIPTS = $(APP_PATH)/resources/app/scripts
@@ -48,8 +51,12 @@ SWAGGER_PATH = $(APP_PATH)/resources/swagger
 -include $(APP_PATH)/resources/app/makefiles/protoc.mk
 
 ## Run tests
-test: test-unit
+test: test-unit test-integration
 
 ## Generate code from proto file(s)
 proto-gen-code: protoc-cli
 	protoc --proto_path=$(SRC_PROTO_PATH) $(SRC_PROTO_PATH)/*.proto  --go_opt=paths=source_relative --go_out=:$(GO_PROTO_PATH) --go-grpc_opt=paths=source_relative --go-grpc_out=:$(GO_PROTO_PATH) --grpc-gateway_opt=paths=source_relative --grpc-gateway_out=:$(GO_PROTO_PATH) --openapiv2_out=:$(SWAGGER_PATH)
+	@cat $(SWAGGER_PATH)/service.swagger.json | jq del\(.paths[][].responses.'"default"'\) > $(SWAGGER_PATH)/service.swagger.json.tmp
+	@mv $(SWAGGER_PATH)/service.swagger.json.tmp $(SWAGGER_PATH)/service.swagger.json
+	@cat $(SWAGGER_PATH)/service.swagger.json | jq del\(.paths.'"/v1/transfer/bulk"'.post.responses.'"200"'\) > $(SWAGGER_PATH)/service.swagger.json.tmp
+	@mv $(SWAGGER_PATH)/service.swagger.json.tmp $(SWAGGER_PATH)/service.swagger.json
